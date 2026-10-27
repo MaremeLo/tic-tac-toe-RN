@@ -6,63 +6,66 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 
-// TypeScript type for a square's value
 type SquareValue = 'X' | 'O' | null;
+type ThemeColors = ReturnType<typeof useTheme>['theme'];
 
-// Props for the Square component
 type SquareProps = {
   value: SquareValue;
   onSquareClick: () => void;
+  theme: ThemeColors;
 };
 
-// A single square on the board
-function Square({ value, onSquareClick }: SquareProps) {
+function Square({ value, onSquareClick, theme }: SquareProps) {
   return (
-    <Pressable style={styles.square} onPress={onSquareClick}>
-      <Text style={styles.squareText}>{value}</Text>
+    <Pressable
+      style={[
+        styles.square,
+        {
+          backgroundColor: theme.card,
+          borderColor: theme.border,
+        },
+      ]}
+      onPress={onSquareClick}
+    >
+      <Text style={[styles.squareText, { color: theme.text }]}>
+        {value}
+      </Text>
     </Pressable>
   );
 }
 
-// Props for the Board component
 type BoardProps = {
   xIsNext: boolean;
   squares: SquareValue[];
   onPlay: (nextSquares: SquareValue[]) => void;
+  theme: ThemeColors;
 };
 
-// The game board
-function Board({ xIsNext, squares, onPlay }: BoardProps) {
+function Board({ xIsNext, squares, onPlay, theme }: BoardProps) {
   function handleClick(i: number) {
     if (calculateWinner(squares) || squares[i]) {
       return;
     }
 
     const nextSquares = squares.slice();
-
-    if (xIsNext) {
-      nextSquares[i] = 'X';
-    } else {
-      nextSquares[i] = 'O';
-    }
+    nextSquares[i] = xIsNext ? 'X' : 'O';
 
     onPlay(nextSquares);
   }
 
   const winner = calculateWinner(squares);
 
-  let status: string;
-
-  if (winner) {
-    status = 'Winner: ' + winner;
-  } else {
-    status = 'Next player: ' + (xIsNext ? 'X' : 'O');
-  }
+  const status = winner
+    ? 'Winner: ' + winner
+    : 'Next player: ' + (xIsNext ? 'X' : 'O');
 
   return (
     <View>
-      <Text style={styles.status}>{status}</Text>
+      <Text style={[styles.status, { color: theme.text }]}>
+        {status}
+      </Text>
 
       {[0, 1, 2].map((row) => (
         <View key={row} style={styles.boardRow}>
@@ -74,6 +77,7 @@ function Board({ xIsNext, squares, onPlay }: BoardProps) {
                 key={i}
                 value={squares[i]}
                 onSquareClick={() => handleClick(i)}
+                theme={theme}
               />
             );
           })}
@@ -83,8 +87,9 @@ function Board({ xIsNext, squares, onPlay }: BoardProps) {
   );
 }
 
-// The main game component
 export default function Game() {
+  const { theme } = useTheme();
+
   const [history, setHistory] = useState<SquareValue[][]>([
     Array(9).fill(null),
   ]);
@@ -109,46 +114,56 @@ export default function Game() {
   }
 
   const moves = history.map((squares, move) => {
-    let description: string;
-
-    if (move > 0) {
-      description = 'Go to move #' + move;
-    } else {
-      description = 'Go to game start';
-    }
+    const description =
+      move > 0 ? 'Go to move #' + move : 'Go to game start';
 
     return (
       <Pressable
         key={move}
-        style={styles.historyButton}
+        style={[
+          styles.historyButton,
+          { backgroundColor: theme.primary },
+        ]}
         onPress={() => jumpTo(move)}
       >
-        <Text style={styles.historyButtonText}>{description}</Text>
+        <Text style={styles.historyButtonText}>
+          {description}
+        </Text>
       </Pressable>
     );
   });
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Tic-Tac-Toe</Text>
+    <ScrollView
+      contentContainerStyle={[
+        styles.container,
+        { backgroundColor: theme.background },
+      ]}
+    >
+      <Text style={[styles.title, { color: theme.text }]}>
+        Tic-Tac-Toe
+      </Text>
 
       <View style={styles.gameBoard}>
         <Board
           xIsNext={xIsNext}
           squares={currentSquares}
           onPlay={handlePlay}
+          theme={theme}
         />
       </View>
 
       <View style={styles.gameInfo}>
-        <Text style={styles.historyTitle}>Game History</Text>
+        <Text style={[styles.historyTitle, { color: theme.text }]}>
+          Game History
+        </Text>
+
         {moves}
       </View>
     </ScrollView>
   );
 }
 
-// Determines whether X or O has won
 function calculateWinner(squares: SquareValue[]): SquareValue {
   const lines = [
     [0, 1, 2],
@@ -161,9 +176,7 @@ function calculateWinner(squares: SquareValue[]): SquareValue {
     [2, 4, 6],
   ];
 
-  for (let i = 0; i < lines.length; i++) {
-    const [a, b, c] = lines[i];
-
+  for (const [a, b, c] of lines) {
     if (
       squares[a] &&
       squares[a] === squares[b] &&
@@ -176,74 +189,59 @@ function calculateWinner(squares: SquareValue[]): SquareValue {
   return null;
 }
 
-// React Native styles replace the tutorial's CSS
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     alignItems: 'center',
     padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#f5f5f5',
+    paddingTop: 30,
   },
-
   title: {
     fontSize: 30,
     fontWeight: 'bold',
     marginBottom: 25,
   },
-
   gameBoard: {
     alignItems: 'center',
   },
-
   status: {
     fontSize: 20,
     fontWeight: '600',
     textAlign: 'center',
     marginBottom: 15,
   },
-
   boardRow: {
     flexDirection: 'row',
   },
-
   square: {
     width: 85,
     height: 85,
     borderWidth: 1,
-    borderColor: '#333',
-    backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
   },
-
   squareText: {
     fontSize: 36,
     fontWeight: 'bold',
   },
-
   gameInfo: {
     marginTop: 30,
     alignItems: 'center',
     width: '100%',
   },
-
   historyTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 10,
   },
-
   historyButton: {
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 6,
-    backgroundColor: '#2563eb',
     marginVertical: 4,
   },
-
   historyButtonText: {
-    color: '#fff',
+    color: '#ffffff',
     fontSize: 15,
   },
 });
